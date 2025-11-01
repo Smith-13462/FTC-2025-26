@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.decode.bot;
 
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.decode.common.DecodeConstants;
@@ -34,7 +35,7 @@ public class ArtifactIntake {
         } catch (Exception e) {
             intakeMotorAvailable = false;
             telemetry.addData("Init problem with ", "intake motor");
-            telemetry.update();
+           // telemetry.update();
         }
     }
 
@@ -61,6 +62,8 @@ public class ArtifactIntake {
     }
 
     public void autoPickup(DecodeConstants.FieldPosition position){
+        ElapsedTime holdClock = new ElapsedTime();
+        while(holdClock.time() < 3){};
 
     }
 }

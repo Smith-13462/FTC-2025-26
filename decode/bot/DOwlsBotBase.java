@@ -106,7 +106,7 @@ public class DOwlsBotBase<orientation> {
         } catch(Exception e){
             motorsAvailable = false;
             telemetry.addData("Problem initialing wheel motors \n" , e.toString());
-            telemetry.update();
+ //           telemetry.update();
         }
 
         //imu init
@@ -130,7 +130,8 @@ public class DOwlsBotBase<orientation> {
     public void manualSteer(double drive, double turn, double strafe1, double strafe2, double powerMultiplier) {
 
         double leftFrontPower = 0, rightFrontPower = 0, leftRearPower = 0, rightRearPower = 0;
-/*
+
+
         if ((strafe1 != 0) || (strafe2 != 0)) {
             if (strafe1 != 0) {
                 leftFrontPower = strafe1 * powerMultiplier;
@@ -143,20 +144,30 @@ public class DOwlsBotBase<orientation> {
                 leftRearPower = strafe2 * powerMultiplier;
                 rightRearPower = -strafe2 * powerMultiplier;
             }
- */
-        strafe1 *= -1;
-        if (strafe1 != 0) {
-            leftFrontPower = strafe1 * powerMultiplier;
-            rightFrontPower = -strafe1 * powerMultiplier;
-            leftRearPower = -strafe1 * powerMultiplier;
-            rightRearPower = strafe1 * powerMultiplier;
-        } else {
+        }  else {
             leftFrontPower = (Range.clip(drive - turn, -1.0, 1.0)) * powerMultiplier;
             rightFrontPower = (Range.clip(drive + turn, -1.0, 1.0)) * powerMultiplier;
             leftRearPower = leftFrontPower;
             rightRearPower = rightFrontPower;
         }
-        SetPower_TeleOp_Robot(leftFrontPower, rightFrontPower, leftRearPower, rightRearPower);
+
+
+    /*
+            strafe1 *= -1;
+            if (strafe1 != 0) {
+                leftFrontPower = strafe1 * powerMultiplier;
+                rightFrontPower = -strafe1 * powerMultiplier;
+                leftRearPower = -strafe1 * powerMultiplier;
+                rightRearPower = strafe1 * powerMultiplier;
+            } else {
+                leftFrontPower = (Range.clip(drive - turn, -1.0, 1.0)) * powerMultiplier;
+                rightFrontPower = (Range.clip(drive + turn, -1.0, 1.0)) * powerMultiplier;
+                leftRearPower = leftFrontPower;
+                rightRearPower = rightFrontPower;
+            }
+
+         */
+            SetPower_TeleOp_Robot(leftFrontPower, rightFrontPower, leftRearPower, rightRearPower);
     }
 
 
@@ -568,7 +579,7 @@ public class DOwlsBotBase<orientation> {
             //telemetry.addData("Motion", "Turning");
         }
 
-        telemetry.update();
+ //       telemetry.update();
     }
 
     public double getRawHeading() {

@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.decode.opmode;
 
+import android.annotation.SuppressLint;
+
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -7,9 +9,12 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.teamcode.decode.bot.DecodeAction;
 import org.firstinspires.ftc.teamcode.decode.bot.DecodeBot;
 import org.firstinspires.ftc.teamcode.decode.common.DecodeConfig;
+import org.firstinspires.ftc.teamcode.decode.bot.DecodeAction;
 import org.firstinspires.ftc.teamcode.decode.common.DecodeConstants;
+import org.firstinspires.ftc.teamcode.decode.common.DecodeUtil;
 
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.Motif.*;
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.OP_MODE.*;
@@ -31,92 +36,219 @@ public abstract class AutoOp extends LinearOpMode {
     public DecodeBot owlsRobot;
     private Pose startPose = null;
     private DecodeConstants.Motif detectedMotif = null;
+    private DecodeAction decodeAction = null;
+    private DecodeConstants.FieldPosition launchPosition;
+    private DecodeConstants.FieldPosition firstPickUpPosition;
+    private DecodeConstants.FieldPosition secondPickUpPosition;
+    private String displayInitialInfo;
 
     public abstract void runOpMode();
+
+    @SuppressLint("SuspiciousIndentation")
     public void initAutoOp(HardwareMap hardwareMap, DecodeConstants.TeamAllianceColor teamAllianceColor, DecodeConstants.LaunchZone launchZone,
-                           FieldPosition startPosition, Pose overridestartPose , HashMap<String, ArrayList<Pose>> overrideViaPointsMap){
+                           FieldPosition startPosition, Pose overridestartPose, HashMap<String, ArrayList<Pose>> overrideViaPointsMap,
+                           FieldPosition firstPickUpPosition, FieldPosition secondPickUpPosition,
+                           FieldPosition launchPosition) {
 
         this.teamAllianceColor = teamAllianceColor;
-        if(overridestartPose != null) {
+        DecodeConfig decodeConfig = new DecodeConfig();
+        if (overridestartPose != null) {
             this.startPose = overridestartPose;
-        } else if(startPosition != null){
-            this.startPose = DecodeConfig.getFieldPositionPose(startPosition);
+        } else if (startPosition != null) {
+            this.startPose = decodeConfig.getFieldPositionPose(startPosition);
         }
+        this.launchPosition = launchPosition;
+        this.firstPickUpPosition = firstPickUpPosition;
+        this.secondPickUpPosition = secondPickUpPosition;
 
-        if(overrideViaPointsMap != null){
+        if (overrideViaPointsMap != null) {
             overrideViaPointsMap.forEach((overrideViaPointsPath, overrideViaPoints) ->
-                DecodeConfig.setOverrideViaPoints(overrideViaPointsPath, overrideViaPoints));
+                    decodeConfig.setOverrideViaPoints(overrideViaPointsPath, overrideViaPoints));
         }
 
-        owlsRobot = new DecodeBot(AUTO_OP_MODE, hardwareMap, telemetry, this.startPose);
+        owlsRobot = new DecodeBot(AUTO_OP_MODE, hardwareMap, telemetry, this.startPose, decodeConfig);
+        decodeAction = new DecodeAction(owlsRobot, telemetry);
 
-        //syncBotStartPoseUsingTargetAprilTag();
+        displayInitialInfo ="";
+        displayInitialInfo += "\n" + "Initializing " + teamAllianceColor.toString() + " " + launchZone.toString() + "...";
+        displayInitialInfo += "\n" + "Pickup Position(s): " +
+                ((firstPickUpPosition == null) ? " " : firstPickUpPosition.toString()) +
+                ((secondPickUpPosition == null) ? " " : "," + secondPickUpPosition.toString());
 
-        detectMotifUntilStart();
-    }
+        //adjustStartPoseHeadingUsingTag(3);
 
-    private void syncBotStartPoseUsingTargetAprilTag(){
-        Pose2D botPose2D = null;
-        botPose2D = owlsRobot.getVision().getLLBotPose();
-
-        if(botPose2D != null){
-           Pose botPose = new Pose(botPose2D.getX(DistanceUnit.INCH), botPose2D.getX(DistanceUnit.INCH),
-                    botPose2D.getHeading(AngleUnit.RADIANS));
-            this.startPose = botPose;
-            owlsRobot.getMotion().resetPose(botPose);
-            telemetry.addLine("Bot Pose initialized using tag to X=" + this.startPose.getX() +
-                    " ,Y=" + this.startPose.getY() + " ,Angle=" + Math.toDegrees(botPose.getHeading()));
-            telemetry.update();
-        } else {
-            telemetry.addLine("Tag not found during initialization");
-            telemetry.update();
-        }
-    }
-
-    public void detectMotifUntilStart(){
-
+        String displayMotif;
         while (this.opModeInInit()) {
-            try {
-                this.detectedMotif = owlsRobot.getVision().getDetectedMotif();
-                if(detectedMotif.equals(UNKNOWN_MOTIF)) {
-                    this.detectedMotif = PGP_MOTIF;
-                    telemetry.addLine("Motif not visible. Defaulted to PGP");
-                } else {
-                    telemetry.addLine("Detected Motif: " + detectedMotif);
-                }
+          displayMotif = detectMotifUntilStart();
+            telemetry.addLine(displayInitialInfo +
+                    "\n" +  displayMotif +
+                    "\n" +  "Waiting to start... ");
+            telemetry.update();
+        }
+    }
+
+    private void adjustStartPoseHeadingUsingTag(double maxDelta) {
+        Pose tagPose = null;
+        ElapsedTime holdclock = new ElapsedTime();
+        holdclock.reset();
+        tagPose = owlsRobot.getVision().getPedroPoseUsingTargetTag(teamAllianceColor);
+        while(holdclock.time() < 30) {
+            tagPose = owlsRobot.getVision().getPedroPoseUsingTargetTag(teamAllianceColor);
+            if (tagPose == null) {
+                telemetry.addLine("Tag pose heading to adjust not available");
                 telemetry.update();
-            } catch (Exception ignored) {
-                detectedMotif = PGP_MOTIF;
-                telemetry.addLine("Problem detecting Motif. Defaulted to PGP");
+            } else {
+                telemetry.addLine("Tag pose heading=" + DecodeUtil.normalizeFieldAngle(Math.toDegrees(tagPose.getHeading())));
                 telemetry.update();
             }
         }
+
+        /*
+        if (tagPose == null) return;
+
+        if (Math.abs(tagPose.getHeading() - this.startPose.getHeading()) < maxDelta) {
+            Pose adjustedPose = new Pose(this.startPose.getX(), this.startPose.getY(),
+                    tagPose.getHeading());
+
+            this.startPose = adjustedPose;
+            owlsRobot.getMotion().resetPose(this.startPose);
+            telemetry.addLine("Bot pose heading adjusted to " + Math.toDegrees(this.startPose.getHeading()));
+        } else {
+            telemetry.addLine("Bot pose heading not adjusted ");
+        }
+        */
     }
 
-    public void launchAndPickupArtifacts(double waitBeforeFirstLaunch, double waitBeforeSecondLaunch) {
+    public String detectMotifUntilStart() {
+        String displayMessage = "";
+        try {
+            this.detectedMotif = owlsRobot.getVision().getDetectedMotif();
+            if (detectedMotif.equals(UNKNOWN_MOTIF)) {
+                this.detectedMotif = PGP_MOTIF;
+                displayMessage = "Motif not visible. Defaulted to PGP";
+            } else {
+                telemetry.addLine();
+                displayMessage = "Detected Motif: " + detectedMotif;
+            }
+        } catch (Exception ignored) {
+            detectedMotif = PGP_MOTIF;
+            displayMessage = "Problem detecting Motif. Defaulted to PGP";
+        }
+
+        return displayMessage;
+    }
+
+    public void launchAndPickupArtifacts(double waitBeforeFirstLaunch, double waitBeforeSecondLaunch, double waitBeforeThirdLaunch,
+                                         double waitBeforeFirstPickup, double waitBeforeSecondPickup) {
         ElapsedTime holdClock = new ElapsedTime();
         holdClock.reset();
 
-        owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, RED_START_FAR_LAUNCH, RED_LAUNCH_D1, false);
+        telemetry.addLine("Traveling to launch position " + launchPosition.toString());
+        telemetry.update();
 
-        if(waitBeforeFirstLaunch > 0) {
-            while(holdClock.time() < waitBeforeFirstLaunch){}
-        };
+        owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, launchPosition, false, null);
+        owlsRobot.getMotion().turnToLaunch(teamAllianceColor);
 
-        owlsRobot.getLauncher().autoLaunch(detectedMotif);
+        if (waitBeforeFirstLaunch > 30) {
+            //do nothing
+        } else {
+            if (waitBeforeFirstLaunch > 0) {
+                while (holdClock.time() < waitBeforeFirstLaunch) {
+                    telemetry.addLine("Waiting to launch....");
+                    telemetry.update();
+                }
+            }
+            telemetry.addLine("Launching artifacts....");
+            telemetry.update();
+            owlsRobot.getAction().autoLaunch(detectedMotif);
+        }
 
-//        owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, RED_PICKUP_LOADING_ZONE, false);
-//        owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, RED_PICKUP_GPP_SPIKE, false);
+        if (firstPickUpPosition != null) {
+            if (waitBeforeFirstPickup > 30) {
+                //do nothing
+            } else {
+                if (waitBeforeFirstPickup > 0) {
+                    while (holdClock.time() < waitBeforeFirstPickup) {
+                        telemetry.addLine("Waiting to travel for pickup from " + firstPickUpPosition.toString());
+                        telemetry.update();
+                    }
+                }
+                telemetry.addLine("Traveling to pickup from " + firstPickUpPosition.toString());
+                telemetry.update();
+                owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, firstPickUpPosition, false, null);
 
-//        owlsRobot.getIntake().autoPickup(RED_PICKUP_LOADING_ZONE);
-//        owlsRobot.getIntake().autoPickup(RED_PICKUP_GPP_SPIKE);
+                telemetry.addLine("Picking up artifacts....");
+                telemetry.update();
+                //owlsRobot.getIntake().autoPickup(firstPickUpPosition);
+                owlsRobot.getMotion().moveStraightToPickup(teamAllianceColor, firstPickUpPosition, 1);
 
-//        owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, RED_LAUNCH_D1, false);
+                ElapsedTime timer = new ElapsedTime();
+                timer.reset();
+                while(timer.time() < 10){
+                    telemetry.addLine(owlsRobot.getMotion().getBotPositionDisplayInfo(teamAllianceColor, true));
+                    telemetry.update();
+                }
 
-        if(waitBeforeSecondLaunch > 0) {
-            while(holdClock.time() < waitBeforeSecondLaunch){}
-        };
+/*
+                telemetry.addLine("Traveling to launch position " + launchPosition.toString());
+                telemetry.update();
+                owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, launchPosition, false, null);
 
-        owlsRobot.getLauncher().autoLaunch(detectedMotif);
+                if (waitBeforeSecondLaunch > 30) {
+                    //do nothing
+                } else {
+                    if (waitBeforeSecondLaunch > 0) {
+                        while (holdClock.time() < waitBeforeSecondLaunch) {
+                            telemetry.addLine("Waiting to launch....");
+                            telemetry.update();
+                        }
+                    }
+                    owlsRobot.getAction().autoLaunch(detectedMotif);
+                    telemetry.addLine("Launching artifacts....");
+                    telemetry.update();
+                }
+            }
+
+            if (secondPickUpPosition != null) {
+                if (waitBeforeSecondPickup > 30) {
+                    //do nothing
+                } else {
+                    if (waitBeforeSecondPickup > 0) {
+                        while (holdClock.time() < waitBeforeSecondPickup) {
+                            telemetry.addLine("Waiting to travel for pickup from " + firstPickUpPosition.toString());
+                            telemetry.update();
+                        }
+                    }
+                    telemetry.addLine("Traveling to pickup from " + secondPickUpPosition.toString());
+                    telemetry.update();
+                    owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, secondPickUpPosition, false, null);
+                    owlsRobot.getIntake().autoPickup(secondPickUpPosition);
+
+                    telemetry.addLine("Traveling to launch position " + launchPosition.toString());
+                    telemetry.update();
+                    telemetry.addLine("Picking up artifacts....");
+                    telemetry.update();
+                    owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, launchPosition, false, null);
+                    if (waitBeforeThirdLaunch > 30) {
+                        //do nothing
+                    } else {
+                        if (waitBeforeThirdLaunch > 0) {
+                            while (holdClock.time() < waitBeforeThirdLaunch) {
+                                telemetry.addLine("Waiting to launch....");
+                                telemetry.update();
+                            }
+                        }
+                        telemetry.addLine("Launching artifacts....");
+                        telemetry.update();
+                        owlsRobot.getAction().autoLaunch(detectedMotif);
+                    }
+                }
+
+                 */
+            }
+
+            //for teleop
+            owlsRobot.getMotion().getLastKnownAutoBotPose();
+        }
     }
 }

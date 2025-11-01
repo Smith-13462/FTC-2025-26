@@ -9,6 +9,13 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.decode.common.DecodeConstants;
 
+import java.util.ArrayList;
+
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.ArtifactColor.GREEN_ARTIFACT;
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.ArtifactColor.PURPLE_ARTIFACT;
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.Motif.PGP_MOTIF;
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.Motif.UNKNOWN_MOTIF;
+
 public class ArtifactLauncher {
     static final double LAUNCH_MOTOR_MAX_SPEED = 1.0;
     static final double LAUNCH_MOTOR_TICKS_PER_ROTATION = 28 ;
@@ -16,7 +23,7 @@ public class ArtifactLauncher {
     static final double LAUNCH_MOTOR_MAX_TICKS_PER_SECOND =
             (LAUNCH_MOTOR_TICKS_PER_ROTATION * LAUNCH_MOTOR_RPM) / 60;
     public DcMotorEx topLaunchMotor = null, bottomLaunchMotor = null;
-    private boolean launchMotorsAvailable = true;
+    private boolean topLaunchMotorAvailable = true, bottomLaunchMotorAvailable = true;
     public Servo angleServo = null;
     private boolean angleServoAvailable = true;
     public double lastKnownAngleServoPos = -1;
@@ -29,7 +36,7 @@ public class ArtifactLauncher {
     ElapsedTime timeSinceLastSpeedAdjustment = new ElapsedTime();
 
 
-    private double currentPower = 0, currentTicksPerSecond = 0;
+    private double currentPower = 0, currentTopMotorTicksPerSecond = 0, currentBottomMotorTicksPerSecond;
     private Telemetry telemetry;
     private double MINIMUM_LAUNCH_ANGLE =40, MAXIMUM_LAUNCH_ANGLE = 70;
     private double MINIMUM_LAUNCH_ANGLE_SERVO_POSITION =0, MAXIMUM_LAUNCH_ANGLE_SERVO_POSITION = 1;
@@ -50,6 +57,15 @@ public class ArtifactLauncher {
             topLaunchMotor.setDirection(DcMotorEx.Direction.FORWARD);
             topLaunchMotor.setPower(0);
 
+            topLaunchMotorAvailable = true;
+        } catch (Exception e) {
+            topLaunchMotorAvailable = false;
+            telemetry.addData("Init problem with ", "top launch motor");
+ //           telemetry.update();
+        }
+
+
+        try {
             bottomLaunchMotor = hardwareMap.get(DcMotorEx.class, "bottomlaunchmotor");
             bottomLaunchMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
             bottomLaunchMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
@@ -57,15 +73,15 @@ public class ArtifactLauncher {
             bottomLaunchMotor.setDirection(DcMotorEx.Direction.REVERSE);
             bottomLaunchMotor.setPower(0);
 
-            launchMotorsAvailable = true;
+            bottomLaunchMotorAvailable = true;
         } catch (Exception e) {
-            launchMotorsAvailable = false;
-            telemetry.addData("Init problem with ", "launch motors");
-            telemetry.update();
+            bottomLaunchMotorAvailable = false;
+            telemetry.addData("Init problem with ", "bottom launch motor");
+//            telemetry.update();
         }
-
+/*
         try {
-            angleServo = hardwareMap.get(Servo.class, "angleServo");
+            angleServo = hardwareMap.get(Servo.class, "angleservo");
             angleServo.setPosition(angleServoInitialPos);
             angleServoAvailable = true;
         } catch (Exception e) {
@@ -73,8 +89,10 @@ public class ArtifactLauncher {
             telemetry.addData("Init problem with ", "angle servo");
             telemetry.update();
         }
+ */
     }
 
+    /*
     public void adjustLaunchPower(double speedAdjustmentFactor) {
         if(timeSinceLastSpeedAdjustment.time() < timeNeededToAdjustSpeed) return;
 
@@ -103,10 +121,8 @@ public class ArtifactLauncher {
 
         timeSinceLastSpeedAdjustment.reset();
     }
-
-    public void adjustLaunchVelocity(double velocityAdjustmentFactor) {
-        if(timeSinceLastSpeedAdjustment.time() < timeNeededToAdjustSpeed) return;
-
+*/
+    public void adjustTopLaunchVelocity(double velocityAdjustmentFactor) {
         if (velocityAdjustmentFactor > 1) {
             velocityAdjustmentFactor = 1;
         } else if (velocityAdjustmentFactor < 0) {
@@ -115,34 +131,48 @@ public class ArtifactLauncher {
 
         double adjustedVelocity = LAUNCH_MOTOR_MAX_TICKS_PER_SECOND * velocityAdjustmentFactor;
 
-        if((velocityAdjustmentMode != null) && (velocityAdjustmentMode == false)) {
-            turnOffLaunchPower();
-        }
-        velocityAdjustmentMode = true;
-
-        if (launchMotorsAvailable) {
+        if (topLaunchMotorAvailable) {
             topLaunchMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
             topLaunchMotor.setVelocity(adjustedVelocity);;
 
+            this.currentTopMotorTicksPerSecond = adjustedVelocity;
+        }
+    }
+
+    public void adjustBottomLaunchVelocity(double velocityAdjustmentFactor) {
+        if (velocityAdjustmentFactor > 1) {
+            velocityAdjustmentFactor = 1;
+        } else if (velocityAdjustmentFactor < 0) {
+            velocityAdjustmentFactor = 0;
+        }
+
+        double adjustedVelocity = LAUNCH_MOTOR_MAX_TICKS_PER_SECOND * velocityAdjustmentFactor;
+
+        if (bottomLaunchMotorAvailable) {
             bottomLaunchMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
             bottomLaunchMotor.setVelocity(adjustedVelocity);
 
-            this.currentTicksPerSecond = adjustedVelocity;
+            this.currentBottomMotorTicksPerSecond = adjustedVelocity;
         }
     }
-    private void turnOffLaunchPower() {
-        topLaunchMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        topLaunchMotor.setPower(0);
 
-        bottomLaunchMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        bottomLaunchMotor.setPower(0);
+    private void turnOffLaunchPower() {
+        if(topLaunchMotorAvailable) {
+            topLaunchMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+            topLaunchMotor.setPower(0);
+        }
+
+        if(bottomLaunchMotorAvailable) {
+            bottomLaunchMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+            bottomLaunchMotor.setPower(0);
+        }
     }
     public double getServoPositionForAngle(double angle) {
        double position = 0;
 
         angle = Range.clip(angle,MINIMUM_LAUNCH_ANGLE,  MAXIMUM_LAUNCH_ANGLE);
 
-        position = (angle - MINIMUM_LAUNCH_ANGLE) /
+        position =  (angle - MINIMUM_LAUNCH_ANGLE) /
                 (MAXIMUM_LAUNCH_ANGLE - MINIMUM_LAUNCH_ANGLE);
 
        return position;
@@ -152,10 +182,11 @@ public class ArtifactLauncher {
 
         position = Range.clip(position,MINIMUM_LAUNCH_ANGLE_SERVO_POSITION,  MAXIMUM_LAUNCH_ANGLE_SERVO_POSITION);
 
-        position = (position - MINIMUM_LAUNCH_ANGLE_SERVO_POSITION) /
-                (MAXIMUM_LAUNCH_ANGLE_SERVO_POSITION - MINIMUM_LAUNCH_ANGLE_SERVO_POSITION);
+        angle = MINIMUM_LAUNCH_ANGLE + (((position - MINIMUM_LAUNCH_ANGLE_SERVO_POSITION) /
+                (MAXIMUM_LAUNCH_ANGLE_SERVO_POSITION - MINIMUM_LAUNCH_ANGLE_SERVO_POSITION))
+                * (MAXIMUM_LAUNCH_ANGLE - MINIMUM_LAUNCH_ANGLE));
 
-        return position;
+        return angle;
     }
     public void setServoPosition(double position) {
         if (!angleServoAvailable) return;
@@ -166,6 +197,7 @@ public class ArtifactLauncher {
         lastKnownAngleServoPos = position;
     }
 
+    /*
     public void adjustLaunchAngle(double targetAngle) {
         if (!angleServoAvailable) return;
 
@@ -181,6 +213,7 @@ public class ArtifactLauncher {
         lastKnownAngleServoPos = targetPosition;
     }
 
+
     public boolean isLaunchAngleWithinTolerance(double targetAngle) {
         double currentAngle = getCurrentLaunchAngle();
 
@@ -190,6 +223,7 @@ public class ArtifactLauncher {
             return false;
         }
     }
+
     public double getCurrentLaunchAngleServoPosition() {
         return (angleServoAvailable) ? angleServo.getPosition() : -1;
     }
@@ -198,30 +232,17 @@ public class ArtifactLauncher {
 
         return getAngleOfServoPosition(getCurrentLaunchAngleServoPosition());
     }
-
-    public void autoLaunch(DecodeConstants.Motif motif) {
-
-    }
+*/
     public String getLauncherDisplayInfo() {
 
         String displayLines = "";
 
-        if (velocityAdjustmentMode == null) {
-            displayLines += "\n" + "Not using velocity/power to launch";
-        } else if (velocityAdjustmentMode == true) {
-            displayLines += "\n" + "Using " + String.format("%6.1f", currentTicksPerSecond) + " ticks per second(RPM "
-                    + (currentTicksPerSecond * 60) / LAUNCH_MOTOR_TICKS_PER_ROTATION
-                    + " to launch";
-        } else {
-            displayLines += "\n" + "Using power factor of "+ currentPower + " to launch";
-        }
-
-        if(angleServoAvailable) {
-            displayLines += "\n" + "Launch angle = " + getCurrentLaunchAngle() + " degrees, Servo Position = " + lastKnownAngleServoPos;
-        } else {
-            displayLines += "\n" + "Servo to adjust launch angle not available!";
-        }
-
+        displayLines += "\n" + "Using " + String.format("%6.1f", currentTopMotorTicksPerSecond) + " ticks per second(RPM "
+                + String.format("%6.1f", (currentTopMotorTicksPerSecond * 60) / LAUNCH_MOTOR_TICKS_PER_ROTATION)
+                + " for top motor to launch";
+        displayLines += "\n" + "Using " + String.format("%6.1f", currentBottomMotorTicksPerSecond) + " ticks per second(RPM "
+                + String.format("%6.1f", (currentBottomMotorTicksPerSecond * 60) / LAUNCH_MOTOR_TICKS_PER_ROTATION)
+                + " for bottom motor to launch";
         return displayLines;
     }
 }
