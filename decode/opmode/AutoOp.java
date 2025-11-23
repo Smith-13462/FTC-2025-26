@@ -6,20 +6,19 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.decode.bot.DecodeAction;
 import org.firstinspires.ftc.teamcode.decode.bot.DecodeBot;
 import org.firstinspires.ftc.teamcode.decode.common.DecodeConfig;
-import org.firstinspires.ftc.teamcode.decode.bot.DecodeAction;
 import org.firstinspires.ftc.teamcode.decode.common.DecodeConstants;
 import org.firstinspires.ftc.teamcode.decode.common.DecodeUtil;
 
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.ArtifactColor.GREEN_ARTIFACT;
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.ArtifactColor.PURPLE_ARTIFACT;
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.FieldPosition.BLUE_PICKUP_GPP_SPIKE;
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.FieldPosition.RED_PICKUP_GPP_SPIKE;
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.Motif.*;
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.OP_MODE.*;
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.*;
-import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.FieldPosition.*;
 
 
 import com.pedropathing.geometry.Pose;
@@ -29,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 @Autonomous(name="ZZZZ Net Common - DO NOT USE", group="AutoLaunchZone")
-//@TeleOp(name="TestLaunchZone", group="Linear Opmode")
 //@Disabled
 public abstract class AutoOp extends LinearOpMode {
     public DecodeConstants.TeamAllianceColor teamAllianceColor;
@@ -40,7 +38,11 @@ public abstract class AutoOp extends LinearOpMode {
     private DecodeConstants.FieldPosition launchPosition;
     private DecodeConstants.FieldPosition firstPickUpPosition;
     private DecodeConstants.FieldPosition secondPickUpPosition;
+    private DecodeConstants.FieldPosition endPosition;
+    private DecodeConstants.FieldPosition targetPosition;
     private String displayInitialInfo;
+    private double maxWaitTimeForSpeedAdjustment;
+    private boolean nearLaunchArea = false;
 
     public abstract void runOpMode();
 
@@ -48,7 +50,9 @@ public abstract class AutoOp extends LinearOpMode {
     public void initAutoOp(HardwareMap hardwareMap, DecodeConstants.TeamAllianceColor teamAllianceColor, DecodeConstants.LaunchZone launchZone,
                            FieldPosition startPosition, Pose overridestartPose, HashMap<String, ArrayList<Pose>> overrideViaPointsMap,
                            FieldPosition firstPickUpPosition, FieldPosition secondPickUpPosition,
-                           FieldPosition launchPosition) {
+                           FieldPosition launchPosition, FieldPosition endPosition,
+                           FieldPosition targetPosition, double maxWaitTimeForSpeedAdjustment
+                           ,boolean pNearAreaLaunch) {
 
         this.teamAllianceColor = teamAllianceColor;
         DecodeConfig decodeConfig = new DecodeConfig();
@@ -60,14 +64,19 @@ public abstract class AutoOp extends LinearOpMode {
         this.launchPosition = launchPosition;
         this.firstPickUpPosition = firstPickUpPosition;
         this.secondPickUpPosition = secondPickUpPosition;
+        this.endPosition = endPosition;
+        this.targetPosition = targetPosition;
+        this.maxWaitTimeForSpeedAdjustment = maxWaitTimeForSpeedAdjustment;
+        this.nearLaunchArea = pNearAreaLaunch;
 
         if (overrideViaPointsMap != null) {
             overrideViaPointsMap.forEach((overrideViaPointsPath, overrideViaPoints) ->
                     decodeConfig.setOverrideViaPoints(overrideViaPointsPath, overrideViaPoints));
         }
 
-        owlsRobot = new DecodeBot(AUTO_OP_MODE, hardwareMap, telemetry, this.startPose, decodeConfig);
-        decodeAction = new DecodeAction(owlsRobot, telemetry);
+        owlsRobot = new DecodeBot(AUTO_OP_MODE, hardwareMap, telemetry, this.startPose, decodeConfig, teamAllianceColor
+        ,targetPosition, nearLaunchArea);
+        decodeAction = new DecodeAction(owlsRobot, telemetry, teamAllianceColor);
 
         displayInitialInfo ="";
         displayInitialInfo += "\n" + "Initializing " + teamAllianceColor.toString() + " " + launchZone.toString() + "...";
@@ -91,9 +100,9 @@ public abstract class AutoOp extends LinearOpMode {
         Pose tagPose = null;
         ElapsedTime holdclock = new ElapsedTime();
         holdclock.reset();
-        tagPose = owlsRobot.getVision().getPedroPoseUsingTargetTag(teamAllianceColor);
+        tagPose = owlsRobot.getVision().getPedroPoseUsingTargetTag();
         while(holdclock.time() < 30) {
-            tagPose = owlsRobot.getVision().getPedroPoseUsingTargetTag(teamAllianceColor);
+            tagPose = owlsRobot.getVision().getPedroPoseUsingTargetTag();
             if (tagPose == null) {
                 telemetry.addLine("Tag pose heading to adjust not available");
                 telemetry.update();
@@ -121,6 +130,7 @@ public abstract class AutoOp extends LinearOpMode {
 
     public String detectMotifUntilStart() {
         String displayMessage = "";
+
         try {
             this.detectedMotif = owlsRobot.getVision().getDetectedMotif();
             if (detectedMotif.equals(UNKNOWN_MOTIF)) {
@@ -139,15 +149,21 @@ public abstract class AutoOp extends LinearOpMode {
     }
 
     public void launchAndPickupArtifacts(double waitBeforeFirstLaunch, double waitBeforeSecondLaunch, double waitBeforeThirdLaunch,
-                                         double waitBeforeFirstPickup, double waitBeforeSecondPickup) {
+                                         double waitBeforeFirstPickup, double waitBeforeSecondPickup, double timeAvailable) {
         ElapsedTime holdClock = new ElapsedTime();
         holdClock.reset();
 
         telemetry.addLine("Traveling to launch position " + launchPosition.toString());
         telemetry.update();
-
+        //launch prep before travel
+        DecodeConstants.Motif launchMotif = owlsRobot.getVision().getMotif();
+        boolean rotateAlreadyDone = false;
+        if (GPP_MOTIF.equals(launchMotif)) {
+            owlsRobot.getContainer().rotateContainer(true, false);
+            rotateAlreadyDone = true;
+        }
+        owlsRobot.getLauncher().setPropulsionSpeed(launchPosition);
         owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, launchPosition, false, null);
-        owlsRobot.getMotion().turnToLaunch(teamAllianceColor);
 
         if (waitBeforeFirstLaunch > 30) {
             //do nothing
@@ -160,7 +176,8 @@ public abstract class AutoOp extends LinearOpMode {
             }
             telemetry.addLine("Launching artifacts....");
             telemetry.update();
-            owlsRobot.getAction().autoLaunch(detectedMotif);
+            owlsRobot.getAction().autoLaunchPreloaded(launchPosition, timeAvailable - holdClock.time(),
+                    true, rotateAlreadyDone, maxWaitTimeForSpeedAdjustment, true);
         }
 
         if (firstPickUpPosition != null) {
@@ -175,24 +192,32 @@ public abstract class AutoOp extends LinearOpMode {
                 }
                 telemetry.addLine("Traveling to pickup from " + firstPickUpPosition.toString());
                 telemetry.update();
-                owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, firstPickUpPosition, false, null);
+                owlsRobot.getLauncher().turnOffLaunchPower();
+                if(RED_PICKUP_GPP_SPIKE.equals(firstPickUpPosition) ||
+                        BLUE_PICKUP_GPP_SPIKE.equals(firstPickUpPosition)) {
+                    owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.L_X_Y, firstPickUpPosition, false, null);
+                } else {
+                    owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, firstPickUpPosition, false, null);
+                }
 
                 telemetry.addLine("Picking up artifacts....");
                 telemetry.update();
-                //owlsRobot.getIntake().autoPickup(firstPickUpPosition);
-                owlsRobot.getMotion().moveStraightToPickup(teamAllianceColor, firstPickUpPosition, 1);
-
-                ElapsedTime timer = new ElapsedTime();
-                timer.reset();
-                while(timer.time() < 10){
-                    telemetry.addLine(owlsRobot.getMotion().getBotPositionDisplayInfo(teamAllianceColor, true));
-                    telemetry.update();
+                pickupArtifacts(firstPickUpPosition);
+                owlsRobot.getIntake().turnOffIntake();
+                //launch prep before travel
+                owlsRobot.getLauncher().setPropulsionSpeed(launchPosition);
+                ArtifactColor desiredArtifactColor;
+                if (launchMotif.toString().charAt(0) == 'P') {
+                    desiredArtifactColor = PURPLE_ARTIFACT;
+                } else {
+                    desiredArtifactColor = GREEN_ARTIFACT;
                 }
+                boolean anySlotRotationDone = owlsRobot.getContainer().alignToLaunchSpecificArtifact(desiredArtifactColor, false);
 
-/*
                 telemetry.addLine("Traveling to launch position " + launchPosition.toString());
                 telemetry.update();
                 owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, launchPosition, false, null);
+                owlsRobot.getIntake().turnOffIntake();
 
                 if (waitBeforeSecondLaunch > 30) {
                     //do nothing
@@ -203,7 +228,9 @@ public abstract class AutoOp extends LinearOpMode {
                             telemetry.update();
                         }
                     }
-                    owlsRobot.getAction().autoLaunch(detectedMotif);
+
+                    owlsRobot.getAction().autoLaunchAll(launchPosition, timeAvailable - holdClock.time(),
+                            true, maxWaitTimeForSpeedAdjustment, true);
                     telemetry.addLine("Launching artifacts....");
                     telemetry.update();
                 }
@@ -222,7 +249,7 @@ public abstract class AutoOp extends LinearOpMode {
                     telemetry.addLine("Traveling to pickup from " + secondPickUpPosition.toString());
                     telemetry.update();
                     owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, secondPickUpPosition, false, null);
-                    owlsRobot.getIntake().autoPickup(secondPickUpPosition);
+                    pickupArtifacts(secondPickUpPosition);
 
                     telemetry.addLine("Traveling to launch position " + launchPosition.toString());
                     telemetry.update();
@@ -240,15 +267,26 @@ public abstract class AutoOp extends LinearOpMode {
                         }
                         telemetry.addLine("Launching artifacts....");
                         telemetry.update();
-                        owlsRobot.getAction().autoLaunch(detectedMotif);
+                        owlsRobot.getAction().autoLaunchAll(launchPosition, timeAvailable - holdClock.time(),
+                                true, maxWaitTimeForSpeedAdjustment, false);
                     }
                 }
-
-                 */
             }
 
             //for teleop
             owlsRobot.getMotion().getLastKnownAutoBotPose();
         }
+    }
+
+    public void pickupArtifacts(FieldPosition pickupPosition) {
+        owlsRobot.getAction().autoOpPickupAll(pickupPosition);
+    }
+    public void leaveLaunchArea(){
+        telemetry.addLine("Leaving Launch Area");
+        telemetry.update();
+        owlsRobot.getMotion().travelToLaunchOrPickup(TravelPathShape.CURVE, endPosition, false, null);
+    }
+    public void wrapupForHandOffToTeleOp(){
+        owlsRobot.getContainer().wrapupAuto();
     }
 }

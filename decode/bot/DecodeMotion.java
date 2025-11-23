@@ -24,15 +24,16 @@ import java.util.ArrayList;
 
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.*;
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConfig.*;
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.FieldPosition.BLUE_PICKUP_PPG_SPIKE;
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.OP_MODE.AUTO_OP_MODE;
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.TeamAllianceColor.RED_ALLIANCE;
 
 public class DecodeMotion {
     HardwareMap hardwareMap;
     GoBildaPinpointDriver pinpoint;
-    boolean pinpointAvailable = false, pedropathDrive = false;
-    private Follower pedroPathFollower, pickupPathFollower;
-    Telemetry telemetry = null;
+    boolean pinpointAvailable, pedropathDrive;
+    private Follower pedroPathFollower;
+    Telemetry telemetry;
     private Pose startPose;
     private DecodeBot owlsBotDecode;
     private static Pose lastKnownAutoBotPose = null;
@@ -40,17 +41,22 @@ public class DecodeMotion {
     private boolean botPositionOnHold = false;
     private double acceptableDelta = 1;
     private OP_MODE opMode;
+    private TeamAllianceColor teamAllianceColor;
+    private FieldPosition targetPosition;
 
     static {
         timeSinceLastknownAutoBotPose = new ElapsedTime();
     }
     DecodeMotion(HardwareMap hardwareMap, DecodeBot owlsBotDecode, boolean automatedDrive, boolean recalibratePinpoint,
-                 Pose pStartPose, Telemetry telemetry, OP_MODE opMode){
+                 Pose pStartPose, Telemetry telemetry, OP_MODE opMode, TeamAllianceColor teamAllianceColor,
+    FieldPosition targetPosition){
         this.hardwareMap = hardwareMap;
         this.pedropathDrive = automatedDrive;
         this.telemetry = telemetry;
         this.owlsBotDecode = owlsBotDecode;
         this.opMode = opMode;
+        this.teamAllianceColor = teamAllianceColor;
+        this.targetPosition = targetPosition;
 
         if(pStartPose == null) {
             this.startPose = new Pose(0,0, 0);
@@ -79,7 +85,6 @@ public class DecodeMotion {
             if(AUTO_OP_MODE.equals(opMode)) {
                 timeSinceLastknownAutoBotPose.reset();
             }
-
         }
     }
 
@@ -106,11 +111,15 @@ public class DecodeMotion {
             return null;
         }
     }
-    public void turnToLaunch(TeamAllianceColor teamAllianceColor){
-        moveLinearOrTurnToLaunch(teamAllianceColor, 0, 0, true);
+    public boolean turnToLaunch(){
+        boolean anyTurnDone = false;
+        if(!pinpointAvailable) return anyTurnDone;
+
+        anyTurnDone = moveLinearOrTurnToLaunch(this.teamAllianceColor, 0, 0, true);
+        return anyTurnDone;
     }
 
-    public void turnOffPositionHold(TeamAllianceColor teamAllianceColor) {
+    public void turnOffPositionHold() {
         if(!this.botPositionOnHold) return;
 
         pedroPathFollower.breakFollowing();
@@ -149,20 +158,22 @@ public class DecodeMotion {
 
         this.botPositionOnHold = false;
     }
-    public void moveLinearOrTurnToLaunch(TeamAllianceColor teamAllianceColor, double left, double forward, boolean hold){
+    public boolean moveLinearOrTurnToLaunch(TeamAllianceColor teamAllianceColor, double left, double forward, boolean hold){
         double turnAngle = 0, targetAngle = 0;
         boolean leftTurn = false;
         ElapsedTime timer = new ElapsedTime();
+
+        boolean anyMoveDone = false;
 
         pedroPathFollower.update();
         Pose currentBotPosePedro = new Pose(pedroPathFollower.getPose().getX(), pedroPathFollower.getPose().getY(),
                 pedroPathFollower.getPose().getHeading());
         turnAngle = DecodeUtil.getLaunchHeadingAdjustment(teamAllianceColor,
-                currentBotPosePedro, left, forward);
-        targetAngle = DecodeUtil.normalizeFieldAngle(Math.toDegrees(DecodeUtil.getLaunchHeading(teamAllianceColor, currentBotPosePedro)));
+                currentBotPosePedro, targetPosition, left, forward);
+        targetAngle = DecodeUtil.normalizeFieldAngle(Math.toDegrees(DecodeUtil.getLaunchHeading(teamAllianceColor, currentBotPosePedro,targetPosition)));
 
         if((left == 0) && (forward == 0)) {
-            if(Math.toDegrees(Math.abs(turnAngle)) > 0.5) {
+            if(Math.toDegrees(Math.abs(turnAngle)) > 2) {
                 leftTurn = (Math.toDegrees(turnAngle) > 0) ? true : false;
                 pedroPathFollower.setMaxPower(0.6);
                 pedroPathFollower.setConstraints(Constants.turnConstraints);
@@ -170,16 +181,15 @@ public class DecodeMotion {
                 pedroPathFollower.update();
 
                 timer.reset();
-                while (
-                    //(pedroPathFollower.isBusy() || (pedroPathFollower.getDistanceRemaining() > 0) || pedroPathFollower.isTurning())
-                        (Math.abs(DecodeUtil.normalizeFieldAngle(targetAngle - DecodeUtil.normalizeFieldAngle(Math.toDegrees(pedroPathFollower.getPose().getHeading())))) > 0.5 ) &&
-                                (timer.time() < 3.5)) {
+                while ((Math.abs(DecodeUtil.normalizeFieldAngle(targetAngle - DecodeUtil.normalizeFieldAngle(Math.toDegrees(pedroPathFollower.getPose().getHeading())))) > 1.5 ) &&
+                                (timer.time() < 2.5)) {
                     pedroPathFollower.update();
                     telemetry.addLine("Turning " + (leftTurn ? "left " : "right ") + Math.toDegrees(Math.abs(turnAngle)) + " degrees.");
                     telemetry.update();
                 }
                 pedroPathFollower.breakFollowing();
                 this.botPositionOnHold = false;
+                anyMoveDone = true;
             } else {
                 telemetry.addLine("No turn needed. Already at an angle to launch...");
                 telemetry.update();
@@ -200,13 +210,13 @@ public class DecodeMotion {
 
             timer.reset();
             while ((pedroPathFollower.isBusy() || (pedroPathFollower.getDistanceRemaining() > 0) || pedroPathFollower.isTurning()) &&
-                 //   (Math.abs(DecodeUtil.normalizeFieldAngle(targetAngle - DecodeUtil.normalizeFieldAngle(Math.toDegrees(pedroPathFollower.getPose().getHeading())))) > 0 ) &&
                             (timer.time() < 4)) {
                 pedroPathFollower.update();
                 telemetry.addLine("Turning " + (leftTurn ? "left " : "right ") + Math.toDegrees(Math.abs(turnAngle)) + " degrees.");
                 //           telemetry.addLine("Current Angle = " + DecodeUtil.normalizeFieldAngle(Math.toDegrees(pedroPathFollower.getPose().getHeading())));
                 telemetry.update();
             }
+            anyMoveDone = true;
             pedroPathFollower.breakFollowing();
         }
 
@@ -215,6 +225,8 @@ public class DecodeMotion {
         if(AUTO_OP_MODE.equals(opMode)) {
             timeSinceLastknownAutoBotPose.reset();
         }
+
+        return anyMoveDone;
     }
 
     public void travelToLaunchOrPickup(ArrayList<Pose> travelPathControlPoints, Runnable parallelAction){
@@ -238,7 +250,7 @@ public class DecodeMotion {
                             .build();
             }
 
-            pedroPathFollower.setMaxPower(0.9);
+            pedroPathFollower.setMaxPower(1);
             pedroPathFollower.setConstraints(Constants.pathConstraints);
             pedroPathFollower.followPath(travelPathChain, true);
             timer.reset();
@@ -261,7 +273,7 @@ public class DecodeMotion {
                             travelPathControlPoints.get(1).getHeading(), 0.8)
                     .build();
 
-            pedroPathFollower.setMaxPower(0.9);
+            pedroPathFollower.setMaxPower(1);
             pedroPathFollower.setConstraints(Constants.pathConstraints);
             pedroPathFollower.followPath(travelPathChain, true);
             timer.reset();
@@ -279,8 +291,9 @@ public class DecodeMotion {
 
     }
 
-    public void moveStraightToPickup(TeamAllianceColor teamAllianceColor,
-                                         FieldPosition pickupPosition, int pickupSequence) {
+    public void moveStraightToPickupAll(TeamAllianceColor teamAllianceColor,
+                                     FieldPosition pickupPosition, double maxMovement,
+                                     Runnable parallelAction) {
         Pose pickupStartPose = DecodeConfig.getFieldPositionPose(pickupPosition);
         if(pickupStartPose == null) return;
 
@@ -289,15 +302,17 @@ public class DecodeMotion {
             teamColorAdj = -1;
         }
 
+        double delta = 0;
+        if(BLUE_PICKUP_PPG_SPIKE.equals(pickupPosition)) {
+            delta = 5;
+        }
+
         ArrayList<Pose> pickupPathControlPoints =  new ArrayList<>();
         Pose currentPose = getUpdatedBotPose();
-        Pose pickupIntermediatePose = new Pose (pickupStartPose.getX(),
-                (pickupStartPose.getY() + ((5 * pickupSequence * teamColorAdj) / 2)), pickupStartPose.getHeading());
-        Pose pickupEndPose = new Pose (pickupStartPose.getX(),
-                (pickupStartPose.getY() + (5 * pickupSequence * teamColorAdj)), pickupStartPose.getHeading());
+        Pose pickupIntermediatePose = new Pose(pickupStartPose.getX(), pickupStartPose.getY() + ((maxMovement * teamColorAdj) / 2), pickupStartPose.getHeading());
+        Pose pickupEndPose = new Pose(pickupStartPose.getX(), pickupStartPose.getY() + (maxMovement * teamColorAdj), pickupStartPose.getHeading());
 
         pickupPathControlPoints.add(0, new Pose (currentPose.getX(), currentPose.getY(), currentPose.getHeading()));
- //       pickupPathControlPoints.add(0, pickupStartPose);
         pickupPathControlPoints.add(1, pickupIntermediatePose);
         pickupPathControlPoints.add(2, pickupEndPose);
 
@@ -307,16 +322,77 @@ public class DecodeMotion {
                 .addPath(pickupPath)
                 .setLinearHeadingInterpolation(pickupPathControlPoints.get(0).getHeading(),
                         pickupPathControlPoints.get(pickupPathControlPoints.size() - 1).getHeading(), 0.1)
+                .addParametricCallback(0.01, parallelAction)
+                .addParametricCallback(0.05, parallelAction)
+                .addParametricCallback(0.10, parallelAction)
+                .addParametricCallback(0.15, parallelAction)
+                .addParametricCallback(0.20, parallelAction)
+                .addParametricCallback(0.25, parallelAction)
+                .addParametricCallback(0.30, parallelAction)
+                .addParametricCallback(0.35, parallelAction)
+                .addParametricCallback(0.40, parallelAction)
+                .addParametricCallback(0.45, parallelAction)
+                .addParametricCallback(0.50, parallelAction)
+                .addParametricCallback(0.55, parallelAction)
+                .addParametricCallback(0.60, parallelAction)
+                .addParametricCallback(0.65, parallelAction)
+                .addParametricCallback(0.70, parallelAction)
+                .addParametricCallback(0.75, parallelAction)
+                .addParametricCallback(0.80, parallelAction)
+                .addParametricCallback(0.85, parallelAction)
+                .addParametricCallback(0.90, parallelAction)
+                .addParametricCallback(0.95, parallelAction)
+                .addParametricCallback(0.99, parallelAction)
                 .build();
 
-        pedroPathFollower.setMaxPower(0.20);
+        if(delta > 0) {
+            pedroPathFollower.setMaxPower(0.25);
+        } else {
+            pedroPathFollower.setMaxPower(0.25);
+        }
         pedroPathFollower.followPath(pickupPathChain, true);
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
-        while((pedroPathFollower.isBusy() || pedroPathFollower.isTurning() || (pedroPathFollower.getDistanceRemaining() > 0))
-                && (timer.time() < 3)){
+        boolean pauseState = false;
+        int pickupSequence = 1;
+
+        owlsBotDecode.getAction().alignEmptySlotToPickup(false);
+        ElapsedTime pauseTimer = new ElapsedTime();
+        pauseTimer.reset();
+
+        while((timer.time() < 7) && (pickupSequence < 4)){
+            Pose travelPose = getUpdatedBotPose();
+            double pauseY = pickupStartPose.getY() + (4 * teamColorAdj) + (5 * (pickupSequence - 1) * teamColorAdj)
+                    + (delta * teamColorAdj);
+            boolean pauseNeeded = false;
+
+            if (RED_ALLIANCE.equals(teamAllianceColor)){
+                if (travelPose.getY() < pauseY) {
+                    pauseNeeded = true;
+                }
+            } else{
+                if (travelPose.getY() > pauseY) {
+                    pauseNeeded = true;
+                }
+            }
+
+            if (pauseNeeded) {
+                if(pauseState) {
+                    if(pauseTimer.time() > 0.8) {
+                        pauseState = false;
+                        owlsBotDecode.getAction().alignEmptySlotToPickup(false);
+                        pedroPathFollower.resumePathFollowing();
+                        pickupSequence++;
+                    }
+                } else {
+                    pedroPathFollower.pausePathFollowing();
+                    pauseState = true;
+                    pauseTimer.reset();
+                }
+            }
+
             pedroPathFollower.update();
-        };
+        }
         pedroPathFollower.breakFollowing();
 
         lastKnownAutoBotPose = pedroPathFollower.getPose();
@@ -349,6 +425,14 @@ public class DecodeMotion {
         if(pathShape.equals(TravelPathShape.CURVE)) {
             Pose intermediatePoint = new Pose((currentPose.getX() + toPose.getX()) / 2,
                     (currentPose.getY() + toPose.getY()) / 2,  toPose.getHeading());
+            travelPathControlPoints.add(1, intermediatePoint);
+            travelPathControlPoints.add(2, toPose);
+        } else if(pathShape.equals(TravelPathShape.L_X_Y)) {
+            Pose intermediatePoint = new Pose(toPose.getX(), currentPose.getY(), toPose.getHeading());
+            travelPathControlPoints.add(1, intermediatePoint);
+            travelPathControlPoints.add(2, toPose);
+        } else if(pathShape.equals(TravelPathShape.L_Y_X)) {
+            Pose intermediatePoint = new Pose(currentPose.getX(), toPose.getY(),  toPose.getHeading());
             travelPathControlPoints.add(1, intermediatePoint);
             travelPathControlPoints.add(2, toPose);
         } else {
@@ -430,89 +514,42 @@ public class DecodeMotion {
         return timeSinceLastknownAutoBotPose;
     }
     public String getBotPositionDisplayInfo(TeamAllianceColor teamAllianceColor, boolean displayPosition) {
+        String displayInfo = "";
+        if(!pinpointAvailable) {
+            displayInfo = "Pinpoint not available";
+            return displayInfo;
+        }
+
         pedroPathFollower.update();
 
         Pose latestPedroPose = new Pose(pedroPathFollower.getPose().getX(),
                 pedroPathFollower.getPose().getY(), pedroPathFollower.getPose().getHeading());
-        String launchPositionName = getLaunchPositionName(latestPedroPose);
-        String displayInfo = "";
+        FieldPosition launchPosition = DecodeUtil.getLaunchPositionName(latestPedroPose, teamAllianceColor);
 
-        if(!pinpointAvailable) return displayInfo;
+        String launchPositionName;
+        if(launchPosition == null){
+            launchPositionName = "None";
+        } else {
+            launchPositionName = String.valueOf(launchPosition);
+        }
 
         double turnAngle = DecodeUtil.getLaunchHeadingAdjustment(teamAllianceColor,
-                latestPedroPose, 0, 0);
+                latestPedroPose, targetPosition, 0, 0);
 
-        try {
                if(displayPosition) {
-                   /*
-                   displayInfo += "\n" + "Bot Start Position:"
-                           + String.format("%6.1f", startPose.getX())
-                           + "," + String.format("%6.1f", startPose.getY())
-                           + "," + String.format("%6.1f", Math.toDegrees(startPose.getHeading()));
-
-                    */
-                   displayInfo += "\n" + "Bot Position:"
+                   displayInfo += "\n" + "Bot Launch Position:"
                            + String.format("%6.1f", latestPedroPose.getX())
                            + "," + String.format("%6.1f", latestPedroPose.getY())
-                           + "," + String.format("%6.1f", Math.toDegrees(latestPedroPose.getHeading()));
+                           + "," + String.format("%6.1f", Math.toDegrees(latestPedroPose.getHeading()))
+                            + " (" + launchPositionName + ")";
                }
-               displayInfo += "\nBot launch position: " + launchPositionName;
                displayInfo += "\nTurn needed to launch is" + String.format("%6.1f ", Math.toDegrees(Math.abs(turnAngle))) + ((turnAngle > 0) ? "degrees left" : "degrees right");
+               displayInfo += "\nDiagonal Distance to Target: " + String.format("%6.1f ", DecodeUtil.getDiagonalDistanceToTarget(teamAllianceColor, latestPedroPose, targetPosition));
 
             if (this.botPositionOnHold) {
                 displayInfo +="\nPress DPad DOWN to resume steering...";
             }
-        } catch (Exception ex) {
-               displayInfo += "\n!!!Bot Position not available!!!";
-        }
 
         return displayInfo;
-    }
-
-    public String getLaunchPositionName(Pose currentPose) {
-
-        if(currentPose == null) return "None";
-
-        if(currentPose.getX() <= 24)  {
-            if((currentPose.getY() >= 48) && (currentPose.getY() <= 72)) {
-                return "D1";
-            } else if ((currentPose.getY() >= 72) && (currentPose.getY() <= 96)) {
-                return "C1";
-            }
-        }
-
-        if((currentPose.getX() >= 72) && (currentPose.getX() <= 96))  {
-            if((currentPose.getY() >= 48) && (currentPose.getY() <= 72)) {
-                return "D4";
-            } else if ((currentPose.getY() >= 72) && (currentPose.getY() <= 96)) {
-                return "C4";
-            }
-        }
-
-        if((currentPose.getX() >= 96) && (currentPose.getX() <=120))  {
-            if((currentPose.getY() >= 24) && (currentPose.getY() <= 48)) {
-                return "E5";
-            } else if ((currentPose.getY() >= 48) && (currentPose.getY() <= 72)) {
-                return "D5";
-            } else if ((currentPose.getY() >= 72) && (currentPose.getY() <= 96)) {
-                return "C5";
-            } else if ((currentPose.getY() >= 96) && (currentPose.getY() <= 120)) {
-                return "B5";
-            }
-        }
-
-        if(currentPose.getX() >= 120)  {
-            if((currentPose.getY() >= 24) && (currentPose.getY() <= 48)) {
-                return "E6";
-            } else if ((currentPose.getY() >= 48) && (currentPose.getY() <= 72)) {
-                return "D6";
-            } else if ((currentPose.getY() >= 72) && (currentPose.getY() <= 96)) {
-                return "C6";
-            } else if ((currentPose.getY() >= 96) && (currentPose.getY() <= 120)) {
-                return "B6";
-            }
-        }
-
-        return "None";
     }
 }

@@ -19,25 +19,30 @@ public class DecodeBot extends DOwlsBotBase {
     private static DecodeConfig decodeConfig = null;
 
     public DecodeBot(DecodeConstants.OP_MODE owlsOpMode, HardwareMap hardwareMap, Telemetry telemetry, Pose startPose,
-                     DecodeConfig decodeConfig) {
+                     DecodeConfig decodeConfig, DecodeConstants.TeamAllianceColor teamAllianceColor
+    , DecodeConstants.FieldPosition targetPosition, boolean nearLaunchArea) {
         super();
         if (owlsOpMode == DRIVER_OP_MODE) {
             Initialize_TeleOp_Robot(hardwareMap, telemetry);
-            InitializeBotForDecode(hardwareMap, true, false, owlsOpMode, startPose, decodeConfig);
+            InitializeBotForDecode(hardwareMap, true, false, owlsOpMode, startPose, decodeConfig,
+                    teamAllianceColor, targetPosition, nearLaunchArea);
         } else if (owlsOpMode == AUTO_OP_MODE) {
             Initialize_Autonomous_Robot(hardwareMap, telemetry);
-            InitializeBotForDecode(hardwareMap, true, true, owlsOpMode, startPose, decodeConfig);
+            InitializeBotForDecode(hardwareMap, true, true, owlsOpMode, startPose, decodeConfig,
+                    teamAllianceColor, targetPosition, nearLaunchArea);
         }
     }
     public void InitializeBotForDecode(HardwareMap hardwareMap, boolean automatedDrive, boolean recalibratePinpoint,
-                                       DecodeConstants.OP_MODE opMode, Pose startPose, DecodeConfig decodeConfig) {
-        owlsVision = new DecodeVision(hardwareMap, telemetry);
+                                       DecodeConstants.OP_MODE opMode, Pose startPose, DecodeConfig decodeConfig,
+                                       DecodeConstants.TeamAllianceColor teamAllianceColor
+    , DecodeConstants.FieldPosition targetPosition, boolean nearLaunchArea) {
+        owlsVision = new DecodeVision(hardwareMap, telemetry, teamAllianceColor);
         owlsMotion = new DecodeMotion(hardwareMap, this, automatedDrive, recalibratePinpoint,
-                startPose, telemetry, opMode);
-        owlsLauncher = new ArtifactLauncher(hardwareMap, opMode, telemetry);
+                startPose, telemetry, opMode, teamAllianceColor, targetPosition);
+        owlsLauncher = new ArtifactLauncher(hardwareMap, opMode, telemetry, teamAllianceColor, targetPosition, nearLaunchArea);
         owlsIntake = new ArtifactIntake(hardwareMap, opMode, telemetry);
         owlsContainer = new ArtifactContainer(hardwareMap, opMode, telemetry);
-        owlsAction = new DecodeAction(this, telemetry);
+        owlsAction = new DecodeAction(this, telemetry, teamAllianceColor);
         this.decodeConfig = decodeConfig;
     }
     public DecodeVision getVision() {

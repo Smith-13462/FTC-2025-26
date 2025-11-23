@@ -4,18 +4,20 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.decode.common.DecodeConstants;
 
-import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.FieldPosition.RED_LAUNCH_D1;
+import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.FieldPosition.RED_FAR_TARGET;
 import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.FieldPosition.RED_START_FAR_LAUNCH;
 
-@TeleOp(name="RED DriverOp", group="DriverOp")
+@TeleOp(name="RED FAR DriverOp", group="DriverOp")
 //@Disabled
-public class DriverOpRED extends DriverOp {
-//    private final DecodeConstants.FieldPosition startPosition = RED_LAUNCH_D1;
+public class DriverOpRedFarLaunch extends DriverOp {
     private final DecodeConstants.FieldPosition startPosition = RED_START_FAR_LAUNCH;
+    private final DecodeConstants.FieldPosition targetPosition = RED_FAR_TARGET;
+
 
     @Override
     public void runOpMode() {
-        super.initDecodeOp(hardwareMap, telemetry, DecodeConstants.TeamAllianceColor.RED_ALLIANCE, this.startPosition);
+        super.initDecodeOp(hardwareMap, telemetry, DecodeConstants.TeamAllianceColor.RED_ALLIANCE, this.startPosition
+                ,this.targetPosition, false);
         super.runOpMode();
     }
 }

@@ -35,12 +35,10 @@ public class DOwlsBotBase<orientation> {
     private double headingError = 0;
     private double targetHeading = 0;
     private double driveSpeed = 0;
-
     private int leftTarget = 0;
     private int rightTarget = 0;
     private int leftRearTarget = 0;
     private int rightRearTarget = 0;
-
     public DcMotor leftEncoder = null;
     public DcMotor rightEncoder = null;
     public DcMotor frontEncoder = null;
@@ -48,31 +46,18 @@ public class DOwlsBotBase<orientation> {
     // Autonomous Drive and Turn Speed and Lift Motor Speed
     public static final double AUTONOMOUS_DRIVE_SPEED = 1.0;
     public static final double AUTONOMOUS_STRAFE_SPEED = 1.0;
-    // Speeds are in Percentage, means 0.5 s 50% of max value
-    //static final double DRIVE_SPEED =  0.5;
     static final double TURN_SPEED =  0.2;
-    //static final double LIFT_SPEED = 0.7;
 
     // Robot width and Length, and wheel radius
     static final double     P_TURN_GAIN            = 0.02;     // Larger is more responsive, but also less stable
     static final double     P_DRIVE_GAIN           = 0.03;     // Larger is more responsive, but also less stable
 
-    static final double ROBOT_WIDTH_INCHES = 14.4;
-    static final double ROBOT_LENGTH_INCHES = 11.4;
-    static final double ROBOT_HEIGHT_INCHES = 4.0;
     static final double COUNTS_PER_MOTOR_REV = 537.7;
     static final double  MOTOR_MULTIPLIER = 1;
     static final double  WHEELS_DIAMETER_INCHES = 4;
     static final double COUNTS_PER_INCH = (COUNTS_PER_MOTOR_REV * MOTOR_MULTIPLIER)/ (WHEELS_DIAMETER_INCHES *3.1415);
-    static final double  COUNTS_PER_MOTOR_REV_ULTRA = 28;
-    static final double STRAFE_FACTOR =1.3;  // Validate
-    static final double COUNTS_PER_INCH_STRAFE = STRAFE_FACTOR*(COUNTS_PER_MOTOR_REV * MOTOR_MULTIPLIER)/ (WHEELS_DIAMETER_INCHES * 3.1415);
-    static final double MOTOR_MAX_RPM = 312;
     static final double     HEADING_THRESHOLD       = 1.0 ;    // How close must the heading get to the target before moving to next step.
-    public DigitalChannel redleft, redright,greenleft, greenright;
-    public Orientation angles;
     public IMU imu;
-
     DOwlsBotBase(){
 
     }

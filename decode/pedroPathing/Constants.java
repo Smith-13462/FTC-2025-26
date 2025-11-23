@@ -23,35 +23,27 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(5)
-            .forwardZeroPowerAcceleration(-42.29191) //auto tuning
-            .lateralZeroPowerAcceleration(-78.65635) //auto tuning
+            .forwardZeroPowerAcceleration(-39.01846)
+            .lateralZeroPowerAcceleration(-70.26015)
             .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.01)) //manual tuning
-           // .secondaryTranslationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.01)) //manual tuning
-            //.useSecondaryTranslationalPIDF(true)
             .headingPIDFCoefficients(new PIDFCoefficients(1, 0, 0.01, 0.01))  //manual tuning
             .secondaryHeadingPIDFCoefficients(new PIDFCoefficients(5, 0, 0.08, 0.01)) //manual tuning
             .useSecondaryHeadingPIDF(true)
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025, 0, 0.0001, 0.6, 0.01)) //manual tuning
-           //.secondaryDrivePIDFCoefficients(new FilteredPIDFCoefficients(0.025, 0, 0.0001, 0.6, 0.01)) //manual tuning
-             //.useSecondaryDrivePIDF(true)
             .drivePIDFSwitch(15)  //manual tuning
             .centripetalScaling(0.0005)  //manual tuning
-
             ;
     public static PathConstraints pathConstraints = new PathConstraints(
                     0.995,
                     0.1,
                     0.1,
                     0.009,
-                    100,
+                    250,
                     0.5,
                     10,
                     0.5
     );
 
-    public static DriveEncoderConstants driveEncoderConstants = new DriveEncoderConstants()
-            .robotWidth(9)
-            .robotLength(9);
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
             .rightFrontMotorName("rightFront")
@@ -62,19 +54,17 @@ public class Constants {
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .xVelocity(64.16480) //auto tuning
-            .yVelocity(49.56540) //auto tuning
+            .xVelocity(60.5527) //auto tuning
+            .yVelocity(46.8720) //auto tuning
             ;
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(2.83)
-            .strafePodX(-6.61)
-//            .forwardPodY(0)
-//            .strafePodX(0)
+            .forwardPodY(0)
+            .strafePodX(0)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
     public static Follower createFollower(HardwareMap hardwareMap) {
 
         return new FollowerBuilder(followerConstants, hardwareMap)
@@ -90,9 +80,9 @@ public class Constants {
             0.1,
             0.009,
             100,
-            0.5,
+            0.4,
             10,
-            0.3
+            0.4
     );
 
     public static PathConstraints turnConstraints = new PathConstraints(
@@ -100,10 +90,10 @@ public class Constants {
             0.1,
             0.1,
             0.009,
-            500,
-            0.5,
+            250,
+            0.6,
             10,
-            0.5
+            0.7
     );
 
 }

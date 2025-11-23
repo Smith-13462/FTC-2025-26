@@ -21,74 +21,86 @@ import static org.firstinspires.ftc.teamcode.decode.common.DecodeConstants.TeamA
 //==============================AUDIENCE WALL================================
 
 public class DecodeConfig {
-    public static double BOT_LENGTH_IN_INCHES = 17, BOT_WIDTH_IN_INCHES = 17, REVERSE_DRIVE = 1;
-    public static boolean REVERSE_DRIVE_BOOLEAN = true;
+    public static double BOT_LENGTH_IN_INCHES = 17, BOT_WIDTH_IN_INCHES = 18, REVERSE_DRIVE = 0;
+    public static boolean REVERSE_DRIVE_BOOLEAN = false;
     //RED target pose
-    public static Pose RED_TARGET_POSE =
-            new Pose(132, 6, Math.toRadians(45));
+    public static Pose RED_FAR_TARGET_POSE =
+            new Pose(138, 2, Math.toRadians(45));
+    public static Pose RED_NEAR_TARGET_POSE =
+            new Pose(118, 0, Math.toRadians(45));
     //RED start poses
     public static Pose RED_START_FAR_LAUNCH_POSE =
-            new Pose( 0 + (BOT_LENGTH_IN_INCHES / 2), 47.25 + BOT_WIDTH_IN_INCHES, Math.toRadians(0 + (180 * REVERSE_DRIVE)));
+            new Pose( (BOT_LENGTH_IN_INCHES / 2), 47.25 + (BOT_WIDTH_IN_INCHES / 2), Math.toRadians(0 + (180 * REVERSE_DRIVE)));
+    public static Pose RED_END_FAR_LAUNCH_POSE =
+            new Pose( (BOT_LENGTH_IN_INCHES /2) + 12, 35.25 + (BOT_WIDTH_IN_INCHES / 2), Math.toRadians(-25 + (180 * REVERSE_DRIVE)));
     public static Pose RED_START_DEPOT_F5_POSE =
-            new Pose( 121 - (BOT_WIDTH_IN_INCHES / 2), 6.25 + BOT_LENGTH_IN_INCHES, Math.toRadians(90 - (180 * REVERSE_DRIVE)));
+            new Pose( 121 - (BOT_WIDTH_IN_INCHES / 2), 6.75 + (BOT_LENGTH_IN_INCHES / 2), Math.toRadians(90 - (180 * REVERSE_DRIVE)));
+    public static Pose RED_END_NEAR_LAUNCH_POSE =
+            new Pose(85, 12,  Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
     //RED launch poses - do not set heading;  computed during init
     public static Pose RED_LAUNCH_D1_POSE =
-            new Pose(21 , 64.25 , Math.toRadians(0)); //56.25
+            new Pose(10.5 , 55.75 , Math.toRadians(0));
     public static Pose RED_LAUNCH_D4_POSE =
-            new Pose( 87, 64.25, Math.toRadians(0));
+            new Pose( 87, 55.75, Math.toRadians(0));
     public static Pose RED_LAUNCH_D5_POSE =
-            new Pose( 111, 64.25, Math.toRadians(0));
+            new Pose( 99, 35, Math.toRadians(0));  //43.75
     public static Pose RED_LAUNCH_D6_POSE =
-            new Pose( 135, 64.25, Math.toRadians(0));
+            new Pose( 135, 55.75, Math.toRadians(0));
     public static Pose RED_LAUNCH_E5_POSE =
-            new Pose( 111, 40, Math.toRadians(0));
+            new Pose( 111, 31.75, Math.toRadians(0));
     public static Pose RED_LAUNCH_E6_POSE =
-            new Pose( 135, 40, Math.toRadians(0));
+            new Pose( 135, 31.75, Math.toRadians(0));
     //RED pickup poses
     public static Pose RED_PICKUP_LOADING_ZONE_POSE =
             new Pose(16, 23, Math.toRadians(60 - (180 * REVERSE_DRIVE)));
     public static Pose RED_PICKUP_GPP_SPIKE_POSE =
-            new Pose(36, 54, Math.toRadians(90 - (180 * REVERSE_DRIVE)));
+            new Pose(35, 54, Math.toRadians(90 - (180 * REVERSE_DRIVE)));
     public static Pose RED_PICKUP_PGP_SPIKE_POSE =
-            new Pose(60, 54, Math.toRadians(90 - (180 * REVERSE_DRIVE)));
+            new Pose(59, 54, Math.toRadians(90 - (180 * REVERSE_DRIVE)));
     public static Pose RED_PICKUP_PPG_SPIKE_POSE =
-            new Pose(84, 54,  Math.toRadians(90 - (180 * REVERSE_DRIVE)));
-    //TBD: Blue poses to be adjusted
+            new Pose(87, 38,  Math.toRadians(90 - (180 * REVERSE_DRIVE))); //48
     //BLUE target pose
-    public static Pose BLUE_TARGET_POSE =
-            new Pose( 132, 138, Math.toRadians(45));
+    public static Pose BLUE_FAR_TARGET_POSE =
+            new Pose( 148, 140, Math.toRadians(-45));   //147, 141   149,139
+    public static Pose BLUE_NEAR_TARGET_POSE =
+            new Pose( 147, 141, Math.toRadians(-45));
     //BLUE start poses
     public static Pose BLUE_START_FAR_LAUNCH_POSE =
-            new Pose( BOT_LENGTH_IN_INCHES / 2, 96 - (BOT_WIDTH_IN_INCHES / 2), 0);
+            new Pose( BOT_LENGTH_IN_INCHES / 2, 96 - (BOT_WIDTH_IN_INCHES / 2), Math.toRadians(0 + (180 * REVERSE_DRIVE)));
+    public static Pose BLUE_END_FAR_LAUNCH_POSE =
+            new Pose( BOT_LENGTH_IN_INCHES / 2 + 12, 108 - (BOT_WIDTH_IN_INCHES / 2), Math.toRadians(25 + (180 * REVERSE_DRIVE)));
     public static Pose BLUE_START_DEPOT_A5_POSE =
-            new Pose( 120 - (BOT_WIDTH_IN_INCHES / 2), 120 + (BOT_LENGTH_IN_INCHES / 2), -90);
+            new Pose( 121 - (BOT_WIDTH_IN_INCHES / 2), 144 - 6.75 - (BOT_LENGTH_IN_INCHES / 2),  Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
+    public static Pose BLUE_END_NEAR_LAUNCH_POSE =
+            new Pose( 118 - (BOT_WIDTH_IN_INCHES / 2), 144 - 5.25 - (BOT_LENGTH_IN_INCHES / 2),  Math.toRadians(90 - (180 * REVERSE_DRIVE)));
     //BLUE launch poses - do not set heading;  computed during init
     public static Pose BLUE_LAUNCH_C1_POSE =
-            new Pose( 132, 138, Math.toRadians(0));
+            new Pose( 18.5, 89, Math.toRadians(0));
     public static Pose BLUE_LAUNCH_C4_POSE =
-            new Pose( 132, 138, Math.toRadians(0));
+            new Pose( 87, 87.5, Math.toRadians(0));
     public static Pose BLUE_LAUNCH_C5_POSE =
-            new Pose( 132, 138, Math.toRadians(0));
+            new Pose( 122, 104, Math.toRadians(0));
     public static Pose BLUE_LAUNCH_C6_POSE =
-            new Pose( 132, 138, Math.toRadians(0));
+            new Pose( 135, 87.5, Math.toRadians(0));
     public static Pose BLUE_LAUNCH_B5_POSE =
-            new Pose( 132, 138, Math.toRadians(0));
+            new Pose( 111, 112.25, Math.toRadians(0));
     public static Pose BLUE_LAUNCH_B6_POSE =
-            new Pose( 132, 138, Math.toRadians(0));
+            new Pose( 135, 112.25, Math.toRadians(0));
     //Blue pickup poses
     public static Pose BLUE_PICKUP_LOADING_ZONE_POSE =
-            new Pose( 132, 138, Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
+            new Pose( 16, 121, Math.toRadians(-60 + (180 * REVERSE_DRIVE)));
     public static Pose BLUE_PICKUP_GPP_SPIKE_POSE =
-            new Pose(132, 138, Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
+            new Pose(22, 104, Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
     public static Pose BLUE_PICKUP_PGP_SPIKE_POSE =
-            new Pose(132, 138, Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
+            new Pose(58, 104, Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
     public static Pose BLUE_PICKUP_PPG_SPIKE_POSE =
-            new Pose(132, 138, Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
+            new Pose(87.5, 102, Math.toRadians(-90 + (180 * REVERSE_DRIVE)));
     private static HashMap<DecodeConstants.FieldPosition, Pose> fieldPositionToPoseMap = new HashMap<DecodeConstants.FieldPosition, Pose>();
     private static HashMap<String, ArrayList<Pose>> viaPositionsMap = new HashMap<String, ArrayList<Pose>>();
     private static final String COLON = ":";
 
     public DecodeConfig(){
+        initBotPositionsMap();
         setLaunchPositionsHeadings();
         initBotPositionsMap();
         setViaPoints();
@@ -106,8 +118,16 @@ public class DecodeConfig {
         fieldPositionToPoseMap.put(BLUE_PICKUP_LOADING_ZONE, BLUE_PICKUP_LOADING_ZONE_POSE); //For BLUE alliance during auto
         fieldPositionToPoseMap.put(RED_START_FAR_LAUNCH, RED_START_FAR_LAUNCH_POSE);
         fieldPositionToPoseMap.put(RED_START_DEPOT_F5, RED_START_DEPOT_F5_POSE);
+        fieldPositionToPoseMap.put(RED_END_FAR_LAUNCH, RED_END_FAR_LAUNCH_POSE);
+        fieldPositionToPoseMap.put(RED_FAR_TARGET, RED_FAR_TARGET_POSE);
+        fieldPositionToPoseMap.put(RED_NEAR_TARGET, RED_NEAR_TARGET_POSE);
+        fieldPositionToPoseMap.put(RED_END_NEAR_LAUNCH, RED_END_NEAR_LAUNCH_POSE);
         fieldPositionToPoseMap.put(BLUE_START_FAR_LAUNCH, BLUE_START_FAR_LAUNCH_POSE);
         fieldPositionToPoseMap.put(BLUE_START_DEPOT_A5, BLUE_START_DEPOT_A5_POSE);
+        fieldPositionToPoseMap.put(BLUE_END_FAR_LAUNCH, BLUE_END_FAR_LAUNCH_POSE);
+        fieldPositionToPoseMap.put(BLUE_END_NEAR_LAUNCH, BLUE_END_NEAR_LAUNCH_POSE);
+        fieldPositionToPoseMap.put(BLUE_FAR_TARGET, BLUE_FAR_TARGET_POSE);
+        fieldPositionToPoseMap.put(BLUE_NEAR_TARGET, BLUE_NEAR_TARGET_POSE);
         fieldPositionToPoseMap.put(RED_LAUNCH_D1, RED_LAUNCH_D1_POSE);
         fieldPositionToPoseMap.put(RED_LAUNCH_D4, RED_LAUNCH_D4_POSE);
         fieldPositionToPoseMap.put(RED_LAUNCH_D5, RED_LAUNCH_D5_POSE);
@@ -131,19 +151,6 @@ public class DecodeConfig {
     }
 
     private static void setViaPoints(){
-        /*
-        viaPositionsMap.put(RED_LAUNCH_D1.toString() + COLON + RED_PICKUP_LOADING_ZONE.toString(),
-                new ArrayList<>(List.of (
-                        new Pose(24 + (BOT_LENGTH_IN_INCHES / 2), 48 + (BOT_WIDTH_IN_INCHES / 2), 0)
-                )));
-
-        viaPositionsMap.put(RED_LAUNCH_D1.toString() + COLON + RED_PICKUP_GPP_SPIKE_POSE.toString(),
-                new ArrayList<>(List.of (
-                        new Pose(14.5, 36, 179),
-                        new Pose(14.5, 24, 179)
-                )));
-
-            */
     }
 
     public static ArrayList<Pose> getCurvePoints(DecodeConstants.FieldPosition fromPos, DecodeConstants.FieldPosition toPos){
@@ -170,51 +177,51 @@ public class DecodeConfig {
 
     private static void setLaunchPositionsHeadings(){
         if(RED_LAUNCH_D1_POSE.getHeading() == 0) {
-            RED_LAUNCH_D1_POSE = RED_LAUNCH_D1_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_D1_POSE));
+            RED_LAUNCH_D1_POSE = RED_LAUNCH_D1_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_D1_POSE, RED_FAR_TARGET));
         }
 
         if(RED_LAUNCH_D4_POSE.getHeading() == 0){
-            RED_LAUNCH_D4_POSE = RED_LAUNCH_D4_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_D4_POSE));
+            RED_LAUNCH_D4_POSE = RED_LAUNCH_D4_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_D4_POSE, RED_NEAR_TARGET));
         }
 
         if(RED_LAUNCH_D5_POSE.getHeading() == 0){
-            RED_LAUNCH_D5_POSE = RED_LAUNCH_D5_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_D5_POSE));
+            RED_LAUNCH_D5_POSE = RED_LAUNCH_D5_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_D5_POSE, RED_NEAR_TARGET));
         }
 
         if(RED_LAUNCH_D6_POSE.getHeading() == 0){
-            RED_LAUNCH_D6_POSE = RED_LAUNCH_D6_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_D6_POSE));
+            RED_LAUNCH_D6_POSE = RED_LAUNCH_D6_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_D6_POSE, RED_NEAR_TARGET));
         }
 
         if(RED_LAUNCH_E5_POSE.getHeading() == 0){
-            RED_LAUNCH_E5_POSE = RED_LAUNCH_E5_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_E5_POSE));
+            RED_LAUNCH_E5_POSE = RED_LAUNCH_E5_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_E5_POSE, RED_NEAR_TARGET));
         }
 
         if(RED_LAUNCH_E6_POSE.getHeading() == 0){
-            RED_LAUNCH_E6_POSE = RED_LAUNCH_E6_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_E6_POSE));
+            RED_LAUNCH_E6_POSE = RED_LAUNCH_E6_POSE.setHeading(DecodeUtil.getLaunchHeading(RED_ALLIANCE, RED_LAUNCH_E6_POSE, RED_NEAR_TARGET));
         }
 
         if(BLUE_LAUNCH_C1_POSE.getHeading() == 0){
-            BLUE_LAUNCH_C1_POSE = BLUE_LAUNCH_C1_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_C1_POSE));
+            BLUE_LAUNCH_C1_POSE = BLUE_LAUNCH_C1_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_C1_POSE, BLUE_FAR_TARGET));
         }
 
         if(BLUE_LAUNCH_C4_POSE.getHeading() == 0){
-            BLUE_LAUNCH_C4_POSE = BLUE_LAUNCH_C4_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_C4_POSE));
+            BLUE_LAUNCH_C4_POSE = BLUE_LAUNCH_C4_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_C4_POSE, BLUE_NEAR_TARGET));
         }
 
         if(BLUE_LAUNCH_C5_POSE.getHeading() == 0){
-            BLUE_LAUNCH_C5_POSE = BLUE_LAUNCH_C5_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_C5_POSE));
+            BLUE_LAUNCH_C5_POSE = BLUE_LAUNCH_C5_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_C5_POSE, BLUE_NEAR_TARGET));
         }
 
         if(BLUE_LAUNCH_C6_POSE.getHeading() == 0){
-            BLUE_LAUNCH_C6_POSE = BLUE_LAUNCH_C6_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_C6_POSE));
+            BLUE_LAUNCH_C6_POSE = BLUE_LAUNCH_C6_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_C6_POSE, BLUE_NEAR_TARGET));
         }
 
         if(BLUE_LAUNCH_B5_POSE.getHeading() == 0){
-            BLUE_LAUNCH_B5_POSE = BLUE_LAUNCH_B5_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_B5_POSE));
+            BLUE_LAUNCH_B5_POSE = BLUE_LAUNCH_B5_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_B5_POSE, BLUE_NEAR_TARGET));
         }
 
         if(BLUE_LAUNCH_B6_POSE.getHeading() == 0){
-            BLUE_LAUNCH_B6_POSE = BLUE_LAUNCH_B6_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_B6_POSE));
+            BLUE_LAUNCH_B6_POSE = BLUE_LAUNCH_B6_POSE.setHeading(DecodeUtil.getLaunchHeading(BLUE_ALLIANCE, BLUE_LAUNCH_B6_POSE, BLUE_NEAR_TARGET));
         }
     }
 }

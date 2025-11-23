@@ -50,15 +50,18 @@ public class DecodeVision
     private static final Integer MOTIF_GPP_TAG_NUM = 21;
     private static final Integer MOTIF_PGP_TAG_NUM = 22;
     private static final Integer MOTIF_PPG_TAG_NUM = 23;
-    private Integer visibleMotifTagNum = 0;
+    private int visibleMotifTagNum  = 0;
+    private DecodeConstants.TeamAllianceColor teamAllianceColor;
+    private static DecodeConstants.Motif launchMotif = DecodeConstants.Motif.PGP_MOTIF;
 
     Pose3D LL_CAMERA_POSE =
                new Pose3D(new Position(DistanceUnit.CM, 0,0,0,0),
                     new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0,0));
 
-    DecodeVision(HardwareMap hardwareMap, Telemetry telemetry){
+    DecodeVision(HardwareMap hardwareMap, Telemetry telemetry, DecodeConstants.TeamAllianceColor teamAllianceColor){
         this.telemetry = telemetry;
         camDebugInfo = "";
+        this.teamAllianceColor = teamAllianceColor;
 
         if(limeLightPipelines.length > 0){
             initLimeLightVision(hardwareMap, limeLightPipelines);
@@ -93,11 +96,20 @@ public class DecodeVision
     public LLResult getLimeLightResult(){
         return llResult;
     }
+
+    public String getCamDebugInfo(){
+        return "cam inf="+ camDebugInfo;
+    }
     public LLResult updateLimeLightResult(boolean updatePose, boolean updateMotif, DecodeConstants.TeamAllianceColor teamAllianceColor){
         LLStatus llStatus = null;
         llResult = null;
 
-        if(!limelightAvailable) return llResult;
+        if(!limelightAvailable) {
+ //           camDebugInfo = "LL not available";
+            return llResult;
+        } else {
+ //           camDebugInfo = "LL available";
+        }
         llStatus  = limelight.getStatus();
 
         if(updateLLMt2Pose) {
@@ -111,6 +123,8 @@ public class DecodeVision
             //do nothing
         }
         if (llResult != null) {
+            //camDebugInfo += "llresult not null";
+
             List<LLResultTypes.FiducialResult> fiducialResults = llResult.getFiducialResults();
             for (LLResultTypes.FiducialResult fr : fiducialResults) {
 
@@ -118,6 +132,9 @@ public class DecodeVision
                         if (MOTIF_GPP_TAG_NUM.equals(fr.getFiducialId()) || MOTIF_PGP_TAG_NUM.equals(fr.getFiducialId()) ||
                                 MOTIF_PPG_TAG_NUM.equals(fr.getFiducialId())) {
                             visibleMotifTagNum = fr.getFiducialId();
+              //              camDebugInfo += "\n decode fiducial id: " + fr.getFiducialId();
+                        } else {
+              //              camDebugInfo += "\n non decode fiducial id: " + fr.getFiducialId();
                         }
                     }
 
@@ -132,6 +149,8 @@ public class DecodeVision
                         }
                     }
             }
+        } else {
+       //     camDebugInfo += "llresult null";
         }
 
         return llResult;
@@ -142,14 +161,20 @@ public class DecodeVision
 
         switch (visibleMotifTagNum) {
             case 21:
-                return DecodeConstants.Motif.GPP_MOTIF;
+                this.launchMotif = DecodeConstants.Motif.GPP_MOTIF;
+                break;
             case 22:
-                return DecodeConstants.Motif.PGP_MOTIF;
+                this.launchMotif = DecodeConstants.Motif.PGP_MOTIF;
+                break;
             case 23:
-                return DecodeConstants.Motif.PPG_MOTIF;
+                this.launchMotif = DecodeConstants.Motif.PPG_MOTIF;
+                break;
             default:
-                return DecodeConstants.Motif.UNKNOWN_MOTIF;
+                this.launchMotif = DecodeConstants.Motif.PGP_MOTIF;
+                break;
         }
+
+        return this.launchMotif;
     }
     private void setFieldTargetPositions() {
         tagPosToNum.put(BLUE_TARGET_TAG,BLUE_TARGET_TAG_NUM);
@@ -161,7 +186,7 @@ public class DecodeVision
 
     public Integer getVisibleMotifTagNum() {
 
-        return visibleMotifTagNum;
+        return new Integer(visibleMotifTagNum);
     }
 
     public Pose2D getLLBotPose2D(DecodeConstants.TeamAllianceColor teamAllianceColor){
@@ -178,9 +203,6 @@ public class DecodeVision
             double yCoordinate = botPose.getY(DistanceUnit.INCH);
 
             double turnAngle = botPose.getHeading(AngleUnit.DEGREES);
-    //        turnAngle = DecodeUtil.normalizeFieldAngle(turnAngle);
-    //        turnAngle = turnAngle - LL_CAMERA_POSE.getOrientation().getYaw(AngleUnit.DEGREES);
-    //        turnAngle = DecodeUtil.normalizeFieldAngle(turnAngle);
 
             normalizedBotPose = new Pose2D(DistanceUnit.INCH, xCoordinate,
                     yCoordinate, AngleUnit.DEGREES, turnAngle);
@@ -189,8 +211,8 @@ public class DecodeVision
         return  normalizedBotPose;
     }
 
-    public Pose getPedroPoseUsingTargetTag(DecodeConstants.TeamAllianceColor teamAllianceColor) {
-        if(teamAllianceColor == null) return  null;
+    public Pose getPedroPoseUsingTargetTag() {
+        if(this.teamAllianceColor == null) return  null;
 
         Pose2D botRelativePose2D = getLLBotPose2D(teamAllianceColor);
 
@@ -201,7 +223,7 @@ public class DecodeVision
         return botPedroPose;
     }
 
-    public Pose getPedroPoseUsingTargetTag1(DecodeConstants.TeamAllianceColor teamAllianceColor) {
+    public Pose getPedroPoseUsingTargetTag1() {
         if(teamAllianceColor == null) return  null;
 
         Pose2D botRelativePose2D = getLLBotPose2D(teamAllianceColor);
@@ -222,13 +244,17 @@ public class DecodeVision
         return botPedroPose;
     }
 
+    public DecodeConstants.Motif getMotif(){
+        return this.launchMotif;
+    }
+
     public String getVisionDisplayInfo(DecodeConstants.TeamAllianceColor teamAllianceColor) {
         String displayVisionInfo = "";
         if(!limelightAvailable) return displayVisionInfo;
 
         Pose2D botPose2D = getLLBotPose2D(teamAllianceColor);
-        Pose botPedroPose = getPedroPoseUsingTargetTag(teamAllianceColor);
-        Pose botPedroPose1 = getPedroPoseUsingTargetTag1(teamAllianceColor);
+        Pose botPedroPose = getPedroPoseUsingTargetTag();
+        Pose botPedroPose1 = getPedroPoseUsingTargetTag1();
 
         if (botPose2D != null) {
             displayVisionInfo += "\n" + "Tag pose X= " + botPose2D.getX(DistanceUnit.INCH) +
@@ -250,6 +276,7 @@ public class DecodeVision
         } else {
             displayVisionInfo += "\n" + "Tag pedro pose1 not available";
         }
+        displayVisionInfo += ("\n" + "Motif = " + this.launchMotif);
 
         return displayVisionInfo;
     }
